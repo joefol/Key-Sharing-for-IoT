@@ -1,18 +1,16 @@
-from secretsharing import SecretSharer
+from Crypto.Protocol.SecretSharing import Shamir
 
-#TODO implement basic t out of n scheme using shamir's secret sharing from secretsharing python library
+secret = 28
+print("\nSecret: ", secret, "\n")
+shares = Shamir.split(4, 6, secret)
 
-secret = input("Enter a secret: ")
-threshold = 3
-numShares = 5
-
-shares = SecretSharer.split_secret(secret, threshold, numShares)
+shares2 = []
 
 print("Generated Shares:")
-for share in shares:
-    print(share)
+for i in range(len(shares)):
+    print(shares[i])
+    shares2.append(shares[i])
 
-availableShares = shares[:3]
-
-reconstructedSecret = SecretSharer.recover_secret(availableShares)
-print("\nReconstructed Secret:", reconstructedSecret)
+reconstructed_secret = Shamir.combine(shares2)
+reconstructed_secret = int.from_bytes(reconstructed_secret, 'big')
+print("\nReconstructed Secret:", reconstructed_secret)
