@@ -11,7 +11,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
     # Start pi
     secret = 28
     print("\nSecret: ", secret)
-    shares = Shamir.split(4, 6, secret)
-    data = pickle.dumps(shares)
 
+    shares = Shamir.split(4, 6, secret)
+    
+    data = pickle.dumps(shares)
     client_socket.sendall(data)
