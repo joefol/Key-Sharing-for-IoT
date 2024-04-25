@@ -28,7 +28,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         else:
             test_keys = []
 
-            for i in range(27):
+            for i in range(28):
                 test_keys.append(Shamir.combine(client_shares[i]).decode())
                 #test_keys[i] = int.from_bytes(test_keys[i], 'big')
                 print("\nSecret ", i, ": ", test_keys[i])

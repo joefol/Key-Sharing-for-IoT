@@ -17,7 +17,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
     # generate 28 test keys of size 128-bit for AES encryption/decryption
     # split each test keys into 6 shares, need 4 to reconstruct
-    for i in range(27):
+    for i in range(28):
         test_keys.append(b'Sixteen byte key')
         test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
         data = pickle.dumps(test_key_shares[i])
