@@ -34,6 +34,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 test_keys[i] = int.from_bytes(test_keys[i], 'big')
                 print("\nSecret ", i, ": ", test_keys[i])
 
+        # Do cut and choose phase
+
         '''
         # Start pi
         client_shares = conn.recv(128)
