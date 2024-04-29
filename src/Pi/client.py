@@ -26,13 +26,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         test_keys.append(key)
 
     for i in range(28):
-        test_keys.append(b'Sixteen byte key')
         time.sleep(TIME_DELAY)
         test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
         data = pickle.dumps(test_key_shares[i])
         client_socket.sendall(data)
 
-    
+
 
     '''
     secret = 28
