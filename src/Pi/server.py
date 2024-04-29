@@ -18,10 +18,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         client_shares = ()
 
         while True:
-            data = conn.recv(4096)
-            if not data:
+            data = conn.recv(50000)
+            if len(client_shares) == 28:
                 break
-            client_shares += (pickle.loads(data),)
+            test = pickle.loads(data)
+            client_shares += (test,)
 
         if len(client_shares) != 28:
             print("Error: Received", len(client_shares), "test keys instead of 28.")
@@ -29,8 +30,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             test_keys = []
 
             for i in range(28):
-                test_keys.append(Shamir.combine(client_shares[i]).decode())
-                #test_keys[i] = int.from_bytes(test_keys[i], 'big')
+                test_keys.append(Shamir.combine(client_shares[i]))
+                test_keys[i] = int.from_bytes(test_keys[i], 'big')
                 print("\nSecret ", i, ": ", test_keys[i])
 
         '''
