@@ -7,6 +7,15 @@ import time
 HOST = '127.0.0.1'
 PORT = 65432
 
+opening_keys_index = []
+evaluation_keys_index = []
+
+
+# Needs to be random, doing 0-13 for opening keys and 14-27 for eval keys
+for i in range(14):
+    opening_keys_index.append(i)
+    evaluation_keys_index.append(i+14)
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
     try:
         server_socket.bind((HOST, PORT))
@@ -16,19 +25,20 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
         conn, addr = server_socket.accept()
         with conn:
-            print('\nConnected by', addr)
-
+            print('\nConnected by', addr, "\n")
+            
             client_shares = ()
 
-            while True:
-                data = conn.recv(50000)
-                if not data:
-                    break
-                test = pickle.loads(data)
-                client_shares += (test,)
+            data = conn.recv(2048)
+            while data:
+                shares_i = pickle.loads(data)
+                client_shares += (shares_i,)
+                data = conn.recv(2048)
 
+            print("Check")
             if len(client_shares) != 28:
-                print("Error: Received", len(client_shares), "test keys instead of 28.")
+                print("Error: Received", len(client_shares), "test keys instead of 28.\n")
+
             else:
                 print(client_shares)
                 test_keys = []
@@ -38,20 +48,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                     test_keys[i] = int.from_bytes(test_keys[i], 'big')
                     print("\nSecret ", i, ": ", test_keys[i])
 
-                # Do cut and choose phase
-                opening_keys_index = []
-                evaluation_keys_index = []
-                for i in range(14):
-                    opening_keys_index.append(i)
-                    evaluation_keys_index.append(i+14)
+                print("\nShares Received\n")
 
-                # Need to close and reopen connection?
-                while True:
-                    data = pickle.dumps(opening_keys_index)
-                    conn.sendall(data)
-                    time.sleep(0.001)
-                    data = pickle.dumps(evaluation_keys_index)
-                    conn.sendall(data)
-                    break
+                # Do cut and choose phase
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sending_socket:
+                    sending_socket.connect((HOST, PORT))
+                    sending_socket.sendall(pickle.dumps(opening_keys_index))
+                    sending_socket.sendall(pickle.dumps(evaluation_keys_index))
+                    print("Opening and Eval key indexes sent\n")
+            #server_socket.close()
+
     except Exception as e:
         print("\nError:", e, "\n")

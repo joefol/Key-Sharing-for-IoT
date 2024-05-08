@@ -10,43 +10,45 @@ PORT = 65432
 
 TIME_DELAY = 0.00002
 
+test_keys = []
+test_key_shares = []
+
+# 28 test keys
+# generate 28 test keys of size 128-bit for AES encryption/decryption
+# split each test keys into 6 shares, need 4 to reconstruct, and send to server
+for i in range(28):
+    key = randbytes(16)
+    test_keys.append(key)
+
+for i in range(28):
+    test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
     try:
         client_socket.connect((HOST, PORT))
 
-    # Start pi
-    # 28 test keys
-
-        test_keys = []
-        test_key_shares = []
-
-    # generate 28 test keys of size 128-bit for AES encryption/decryption
-    # split each test keys into 6 shares, need 4 to reconstruct, and send to server
-        for i in range(28):
-            key = randbytes(16)
-            test_keys.append(key)
-
+        print("\nSuccessfully Connected to Server!\n")
+        
         for i in range(28):
             time.sleep(TIME_DELAY)
-            test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
+            #test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
             data = pickle.dumps(test_key_shares[i])
             client_socket.sendall(data)
-    
-        client_socket.close()
+        print("\nshares sent\n")
+        client_socket.shutdown(socket.SHUT_WR)
 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-            client_socket.connect((HOST, PORT))
+        index = []
+        data = client_socket.recv(1024)
+        print("check\n")
+        while data:          #Issue here
+            index.append(pickle.loads(data))
+            data = client_socket.recv(1024)
+            print("Check\n")
 
-            while True:
-                data = client_socket.recv(1024)
-                if not data:
-                    print("\nerror\n")
-                    break
+        for i in index:
+            print("Indexes: ", i, "\n")
 
-            index = []
-            index = pickle.loads(data)
+        #client_socket.close()
 
-            for i in range(14):
-                print("Indexes: ", index[i], "\n")
     except Exception as e:
         print("\nError: ", e, "\n")
