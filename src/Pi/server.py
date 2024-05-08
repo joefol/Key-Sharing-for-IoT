@@ -1,6 +1,8 @@
 import socket
 import pickle
 from Crypto.Protocol.SecretSharing import Shamir
+from random import *
+import time
 
 HOST = '127.0.0.1'
 PORT = 65432
@@ -19,7 +21,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
         while True:
             data = conn.recv(50000)
-            if len(client_shares) == 28:
+            if not data:
                 break
             test = pickle.loads(data)
             client_shares += (test,)
@@ -27,6 +29,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         if len(client_shares) != 28:
             print("Error: Received", len(client_shares), "test keys instead of 28.")
         else:
+            print(client_shares)
             test_keys = []
 
             for i in range(28):
@@ -34,7 +37,20 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 test_keys[i] = int.from_bytes(test_keys[i], 'big')
                 print("\nSecret ", i, ": ", test_keys[i])
 
-        # Do cut and choose phase
+            # Do cut and choose phase
+            opening_keys_index = []
+            evaluation_keys_index = []
+            for i in range(14):
+                opening_keys_index.append(i)
+                evaluation_keys_index.append(i+14)
+
+            data = pickle.dumps(opening_keys_index)
+            conn.sendall(data)
+
+            time.sleep(0.001)
+
+            data = pickle.dumps(evaluation_keys_index)
+            conn.sendall(data)
 
         '''
         # Start pi

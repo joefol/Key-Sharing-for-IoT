@@ -30,15 +30,24 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
         data = pickle.dumps(test_key_shares[i])
         client_socket.sendall(data)
+    
+    client_socket.close()
 
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    client_socket.connect((HOST, PORT))
 
+    conn = client_socket.accept()
 
-    '''
-    secret = 28
-    print("\nSecret: ", secret)
+    with conn:
 
-    shares = Shamir.split(4, 6, secret)
+        while True:
+            data = client_socket.recv(1024)
+            if not data:
+                print("\nerror\n")
+                break
 
-    data = pickle.dumps(shares)
-    client_socket.sendall(data)
-    '''
+        index = []
+        index = pickle.loads(data)
+
+        for i in range(14):
+            print("Indexes: ", index[i], "\n")
