@@ -8,6 +8,9 @@ PORT = 65432
 
 opening_keys_index = []
 evaluation_keys_index = []
+test_keys_opening = []
+errors = []
+counter = 0
 
 
 # Needs to be random, doing 0-13 for opening keys and 14-27 for eval keys
@@ -55,6 +58,34 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 print("Opening and Eval key indexes sent\n")
 
                 #TODO Receive next set of shares from client
+                # Need to adjust
+                client_shares_opening = ()
+                while True:
+                    data = conn.recv(2048)
+                    if not data:
+                        break
+                    shares_i = pickle.loads(data)
+                    client_shares_opening += (shares_i,)
+
+                if len(client_shares_opening) != 14:
+                    print("Error in cut-and-choose phase: Received", len(client_shares_opening), "test keys instead of 14. Aborting protocol\n")
+                    server_socket.close()
+
+                else:
+                    print("Received shares\n")
+                    #print(client_shares)
+
+                    for i in range(14):
+                        test_keys_opening.append(Shamir.combine(client_shares_opening[i]))
+                        test_keys_opening[i] = int.from_bytes(test_keys_opening[i], 'big')
+                        if test_keys[i] != test_keys_opening[i]:
+                            print("Test Key at index ", opening_keys_index[i], " is not equal.")
+                            errors.append(opening_keys_index[i])
+                            print("Error at index: ", errors[counter])
+                            counter += 1
+                        #print("\nSecret ", i, ": ", test_keys[i])
+
+                    #print("\nShares Received\n")
 
     except Exception as e:
         print("\nError:", e, "\n")
