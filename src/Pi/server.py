@@ -40,23 +40,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 print("Error: Received", len(client_shares), "test keys instead of 28.\n")
 
             else:
-                print(client_shares)
+                #print(client_shares)
                 test_keys = []
 
                 for i in range(28):
                     test_keys.append(Shamir.combine(client_shares[i]))
                     test_keys[i] = int.from_bytes(test_keys[i], 'big')
-                    print("\nSecret ", i, ": ", test_keys[i])
+                    #print("\nSecret ", i, ": ", test_keys[i])
 
                 print("\nShares Received\n")
 
-                # Do cut and choose phase
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sending_socket:
-                    sending_socket.connect((HOST, PORT))
-                    sending_socket.sendall(pickle.dumps(opening_keys_index))
-                    sending_socket.sendall(pickle.dumps(evaluation_keys_index))
-                    print("Opening and Eval key indexes sent\n")
-            #server_socket.close()
+                conn.sendall(pickle.dumps(opening_keys_index))
+                conn.sendall(pickle.dumps(evaluation_keys_index))
+
+                print("Opening and Eval key indexes sent\n")
+
+                #TODO Receive next set of shares from client
 
     except Exception as e:
         print("\nError:", e, "\n")

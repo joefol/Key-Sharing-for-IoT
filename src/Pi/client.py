@@ -8,7 +8,7 @@ from random import randbytes
 HOST = '127.0.0.1'
 PORT = 65432
 
-TIME_DELAY = 0.00002
+TIME_DELAY = 0.0002
 
 test_keys = []
 test_key_shares = []
@@ -30,25 +30,25 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         print("\nSuccessfully Connected to Server!\n")
         
         for i in range(28):
-            time.sleep(TIME_DELAY)
             #test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
             data = pickle.dumps(test_key_shares[i])
             client_socket.sendall(data)
+            time.sleep(TIME_DELAY)
+
         print("\nshares sent\n")
         client_socket.shutdown(socket.SHUT_WR)
 
-        index = []
-        data = client_socket.recv(1024)
-        print("check\n")
-        while data:          #Issue here
-            index.append(pickle.loads(data))
+        indexes = []
+        while True:
             data = client_socket.recv(1024)
-            print("Check\n")
+            if not data:
+                #print("break\n")
+                break
+            indexes += pickle.loads(data)
 
-        for i in index:
-            print("Indexes: ", i, "\n")
+        print("Indexes received\n")
 
-        #client_socket.close()
+        #TODO Continue 2nd half of cut and choose phase
 
     except Exception as e:
         print("\nError: ", e, "\n")
