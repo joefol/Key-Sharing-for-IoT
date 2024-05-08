@@ -46,7 +46,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
                 break
             indexes += pickle.loads(data)
 
-        print("Indexes received\n")
+        if len(indexes) != 0:
+            print("Indexes received\n")
+        else: 
+            print("Error in initialization phase, aborting protocol\n")
 
         #TODO Continue 2nd half of cut and choose phase
 

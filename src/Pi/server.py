@@ -2,7 +2,6 @@ import socket
 import pickle
 from Crypto.Protocol.SecretSharing import Shamir
 from random import *
-import time
 
 HOST = '127.0.0.1'
 PORT = 65432
@@ -35,9 +34,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 client_shares += (shares_i,)
                 data = conn.recv(2048)
 
-            print("Check")
             if len(client_shares) != 28:
-                print("Error: Received", len(client_shares), "test keys instead of 28.\n")
+                print("Error in initialization phase: Received", len(client_shares), "test keys instead of 28. Aborting protocol\n")
+                server_socket.close()
 
             else:
                 #print(client_shares)
