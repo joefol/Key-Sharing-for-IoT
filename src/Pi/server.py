@@ -2,9 +2,11 @@ import socket
 import pickle
 from Crypto.Protocol.SecretSharing import Shamir
 from random import *
+import time
 
 HOST = '127.0.0.1'
 PORT = 65432
+TIME_DELAY = 0.0002
 
 opening_keys_index = []
 evaluation_keys_index = []
@@ -31,12 +33,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             
             client_shares = ()
 
-            data = conn.recv(2048)
-            while data:
+            while True:
+                data = conn.recv(1024)
+                if data.endswith(b"READY"):
+                    print("BREAK\n")
+                    break
                 shares_i = pickle.loads(data)
                 client_shares += (shares_i,)
-                data = conn.recv(2048)
+                #print(data, "\n")
 
+            print("continuing\n")
             if len(client_shares) != 28:
                 print("Error in initialization phase: Received", len(client_shares), "test keys instead of 28. Aborting protocol\n")
                 server_socket.close()
@@ -48,21 +54,26 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 for i in range(28):
                     test_keys.append(Shamir.combine(client_shares[i]))
                     test_keys[i] = int.from_bytes(test_keys[i], 'big')
-                    #print("\nSecret ", i, ": ", test_keys[i])
+                    print("\nSecret ", i, ": ", test_keys[i])
 
                 print("\nShares Received\n")
 
                 conn.sendall(pickle.dumps(opening_keys_index))
                 conn.sendall(pickle.dumps(evaluation_keys_index))
 
+                time.sleep(TIME_DELAY)
+                conn.sendall(b"READY")
+
                 print("Opening and Eval key indexes sent\n")
 
                 #TODO Receive next set of shares from client
                 # Need to adjust
+                # Server_socket.shutdown(socket.SHUT_RD)
+
                 client_shares_opening = ()
                 while True:
-                    data = conn.recv(2048)
-                    if not data:
+                    data = conn.recv(1024)
+                    if data.endswith(b"READY"):
                         break
                     shares_i = pickle.loads(data)
                     client_shares_opening += (shares_i,)
@@ -83,7 +94,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                             errors.append(opening_keys_index[i])
                             print("Error at index: ", errors[counter])
                             counter += 1
-                        #print("\nSecret ", i, ": ", test_keys[i])
+                        print("\nSecret ", i, ": ", test_keys[i])
 
                     #print("\nShares Received\n")
 

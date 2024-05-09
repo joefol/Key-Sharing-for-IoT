@@ -33,45 +33,49 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             data = pickle.dumps(test_key_shares[i])
             client_socket.sendall(data)
             time.sleep(TIME_DELAY)
+        time.sleep(TIME_DELAY)
+        client_socket.sendall(b"READY")
 
         print("\nshares sent\n")
-        client_socket.shutdown(socket.SHUT_WR)
+        #client_socket.shutdown(socket.SHUT_WR)
 
+        # Receive opening key and evaluation key indices
         indices = []
         while True:
             data = client_socket.recv(1024)
-            if not data:
-                #print("break\n")
+            if data.endswith(b"READY"):
+                print("BREAK\n")
                 break
             indices += pickle.loads(data)
 
         if len(indices) != 0:
-            print("Indexes received\n")
+            print(len(indices), " Indexes received\n")
         else: 
             print("Error in initialization phase, aborting protocol\n")
 
         #TODO Continue 2nd half of cut and choose phase
 
-        opening_key_indices = []
-        eval_key_indices = []
+        opening_key_indices = indices[:14]
+        eval_key_indices = indices[14:]
+
+        
         for i in range(14):
-            opening_key_indices.append(indices[i])
-            #print("Opening indices: ", opening_key_indices[i], "\n")
-            eval_key_indices.append(indices[i+14])
-            #print("Eval indices: ", eval_key_indices[i], "\n")
+            print("Opening indices: ", opening_key_indices[i], "\n")
+            print("Eval indices: ", eval_key_indices[i], "\n")
+        
         
         print("Indices received from server\n")
 
-        # Need to adjust this
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((HOST, PORT))
-        conn2, addr2 = client_socket.accept()
-        print("Socket reopened for writing.")
-        with conn2:
-            for i in range(14):
-                data = pickle.dumps(test_key_shares[opening_key_indices[i]])
-                client_socket.sendall(data)
-                time.sleep(TIME_DELAY)
+        for i in range(14):
+            data = pickle.dumps(test_key_shares[opening_key_indices[i]])
+            client_socket.sendall(data)
+            #print("Check\n")
+            time.sleep(TIME_DELAY)
+
+        data = b"READY"
+        client_socket.sendall(data)
+
+        print("Sent opening key shares to server\n")
 
     except Exception as e:
         print("\nError: ", e, "\n")
