@@ -1,6 +1,8 @@
 import socket
 import pickle
 from Crypto.Protocol.SecretSharing import Shamir
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
 from random import *
 import time
 
@@ -8,6 +10,7 @@ HOST = '127.0.0.1'
 PORT = 65432
 TIME_DELAY = 0.0002
 
+test_keys = []
 opening_keys_index = []
 evaluation_keys_index = []
 test_keys_opening = []
@@ -49,11 +52,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
             else:
                 #print(client_shares)
-                test_keys = []
 
                 for i in range(28):
                     test_keys.append(Shamir.combine(client_shares[i]))
-                    test_keys[i] = int.from_bytes(test_keys[i], 'big')
+                    #test_keys[i] = int.from_bytes(test_keys[i], 'big')
                     #print("\nSecret ", i, ": ", test_keys[i])
 
                 print("\nShares Received\n")
@@ -97,6 +99,27 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                         #print("\nSecret ", i, ": ", test_keys[i])
 
                     print("\nOpening keys reconstructed!\n")
+
+                    ciphertexts = []
+
+                    data = conn.recv(1024)
+                    ciphertexts = pickle.loads(data)
+
+                    print(ciphertexts)
+
+                    data = conn.recv(1024) # Receive end message
+
+                    plaintexts = []
+                    for i in range(14):
+                        cipher = AES.new(test_keys[evaluation_keys_index[i]], AES.MODE_ECB)
+                        plaintext = unpad(cipher.decrypt(ciphertexts[i]), AES.block_size)
+                        plaintexts.append(plaintext)
+                        #print("Secret: ", plaintexts[i])
+                    
+                    if len(plaintexts) != 0:
+                        print("Server has received and decrypted ciphertexts. Calculating secret...\n")
+
+                    # TODO use pseudorandome function to derive key from secret
 
     except Exception as e:
         print("\nError:", e, "\n")
