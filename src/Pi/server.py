@@ -36,13 +36,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             while True:
                 data = conn.recv(1024)
                 if data.endswith(b"READY"):
-                    print("BREAK\n")
+                    #print("BREAK\n")
                     break
                 shares_i = pickle.loads(data)
                 client_shares += (shares_i,)
                 #print(data, "\n")
 
-            print("continuing\n")
+            #print("continuing\n")
             if len(client_shares) != 28:
                 print("Error in initialization phase: Received", len(client_shares), "test keys instead of 28. Aborting protocol\n")
                 server_socket.close()
@@ -54,7 +54,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 for i in range(28):
                     test_keys.append(Shamir.combine(client_shares[i]))
                     test_keys[i] = int.from_bytes(test_keys[i], 'big')
-                    print("\nSecret ", i, ": ", test_keys[i])
+                    #print("\nSecret ", i, ": ", test_keys[i])
 
                 print("\nShares Received\n")
 
@@ -94,9 +94,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                             errors.append(opening_keys_index[i])
                             print("Error at index: ", errors[counter])
                             counter += 1
-                        print("\nSecret ", i, ": ", test_keys[i])
+                        #print("\nSecret ", i, ": ", test_keys[i])
 
-                    #print("\nShares Received\n")
+                    print("\nOpening keys reconstructed!\n")
 
     except Exception as e:
         print("\nError:", e, "\n")

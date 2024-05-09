@@ -44,12 +44,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         while True:
             data = client_socket.recv(1024)
             if data.endswith(b"READY"):
-                print("BREAK\n")
+                #print("BREAK\n")
                 break
             indices += pickle.loads(data)
 
         if len(indices) != 0:
-            print(len(indices), " Indexes received\n")
+            print(len(indices), " Indices received\n")
         else: 
             print("Error in initialization phase, aborting protocol\n")
 
@@ -58,11 +58,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         opening_key_indices = indices[:14]
         eval_key_indices = indices[14:]
 
-        
+        '''
         for i in range(14):
             print("Opening indices: ", opening_key_indices[i], "\n")
             print("Eval indices: ", eval_key_indices[i], "\n")
-        
+        '''
         
         print("Indices received from server\n")
 
