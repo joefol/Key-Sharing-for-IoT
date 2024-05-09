@@ -3,6 +3,8 @@ import pickle
 from Crypto.Protocol.SecretSharing import Shamir
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
+from Crypto.Protocol.KDF import scrypt
+from Crypto.Random import get_random_bytes
 import time
 from random import randbytes
 
@@ -85,7 +87,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             cipher = AES.new(test_keys[eval_key_indices[i]], AES.MODE_ECB)
             ciphertext = cipher.encrypt(pad(secret, AES.block_size))
             ciphers.append(ciphertext)
-            print("Secret: ", ciphers[i], "\n")
+            #print("Secret: ", ciphers[i], "\n")
 
         data = pickle.dumps(ciphers)
         client_socket.sendall(data)
@@ -96,6 +98,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         print("Sent ciphertexts to server\n")
 
         # TODO use pseudorandome function to derive key from secret
+
+        salt = get_random_bytes(16)
+        key = scrypt(secret.decode(), salt, 16, N=2**14, r=8, p=1)
+        print("Session Key: ", key, "/n")
 
     except Exception as e:
         print("\nError: ", e, "\n")

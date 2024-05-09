@@ -3,6 +3,8 @@ import pickle
 from Crypto.Protocol.SecretSharing import Shamir
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+from Crypto.Protocol.KDF import scrypt
+from Crypto.Random import get_random_bytes
 from random import *
 import time
 
@@ -11,9 +13,13 @@ PORT = 65432
 TIME_DELAY = 0.0002
 
 test_keys = []
+test_keys_ints = []
+test_keys_opening_ints =[]
+test_keys_opening = []
+
 opening_keys_index = []
 evaluation_keys_index = []
-test_keys_opening = []
+
 errors = []
 counter = 0
 
@@ -39,7 +45,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             while True:
                 data = conn.recv(1024)
                 if data.endswith(b"READY"):
-                    #print("BREAK\n")
                     break
                 shares_i = pickle.loads(data)
                 client_shares += (shares_i,)
@@ -48,14 +53,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             #print("continuing\n")
             if len(client_shares) != 28:
                 print("Error in initialization phase: Received", len(client_shares), "test keys instead of 28. Aborting protocol\n")
+                server_socket.shutdown(socket.SHUT_RDWR)
                 server_socket.close()
 
             else:
-                #print(client_shares)
 
                 for i in range(28):
                     test_keys.append(Shamir.combine(client_shares[i]))
-                    #test_keys[i] = int.from_bytes(test_keys[i], 'big')
+                    test_keys_ints.append(int.from_bytes(test_keys[i], 'big'))
                     #print("\nSecret ", i, ": ", test_keys[i])
 
                 print("\nShares Received\n")
@@ -68,10 +73,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                 print("Opening and Eval key indexes sent\n")
 
-                #TODO Receive next set of shares from client
-                # Need to adjust
-                # Server_socket.shutdown(socket.SHUT_RD)
-
                 client_shares_opening = ()
                 while True:
                     data = conn.recv(1024)
@@ -82,6 +83,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                 if len(client_shares_opening) != 14:
                     print("Error in cut-and-choose phase: Received", len(client_shares_opening), "test keys instead of 14. Aborting protocol\n")
+                    server_socket.shutdown(socket.SHUT_RDWR)
                     server_socket.close()
 
                 else:
@@ -90,22 +92,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                     for i in range(14):
                         test_keys_opening.append(Shamir.combine(client_shares_opening[i]))
-                        test_keys_opening[i] = int.from_bytes(test_keys_opening[i], 'big')
-                        if test_keys[i] != test_keys_opening[i]:
-                            print("Test Key at index ", opening_keys_index[i], " is not equal.")
+                        test_keys_opening_ints.append(int.from_bytes(test_keys_opening[i], 'big'))
+                        if test_keys_ints[i] != test_keys_opening_ints[i]:
+                            print("Test Key at index ", opening_keys_index[i], " is not equal.\n")
                             errors.append(opening_keys_index[i])
-                            print("Error at index: ", errors[counter])
+                            print("Error at index: ", errors[counter], "\n")
                             counter += 1
                         #print("\nSecret ", i, ": ", test_keys[i])
 
-                    print("\nOpening keys reconstructed!\n")
+                    print("Opening keys reconstructed!\n")
 
                     ciphertexts = []
 
                     data = conn.recv(1024)
                     ciphertexts = pickle.loads(data)
 
-                    print(ciphertexts)
+                    #print(ciphertexts)
 
                     data = conn.recv(1024) # Receive end message
 
@@ -114,12 +116,26 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                         cipher = AES.new(test_keys[evaluation_keys_index[i]], AES.MODE_ECB)
                         plaintext = unpad(cipher.decrypt(ciphertexts[i]), AES.block_size)
                         plaintexts.append(plaintext)
-                        #print("Secret: ", plaintexts[i])
+                        print("Secret: ", plaintexts[i])
                     
                     if len(plaintexts) != 0:
-                        print("Server has received and decrypted ciphertexts. Calculating secret...\n")
+                        print("\nServer has received and decrypted ciphertexts. Calculating secret...\n")
+
+                    secret = b'0'
+                    for i in range(14):
+                        if plaintexts[i] == plaintexts[i+1]:
+                            secret = plaintexts[i]
+                            break
+                    if secret == 0:
+                        print("Session Key Derivation Phase failed. Aborting protocol\n")
+                        server_socket.shutdown(socket.SHUT_RDWR)
+                        server_socket.close()
 
                     # TODO use pseudorandome function to derive key from secret
+
+                    salt = get_random_bytes(16)
+                    key = scrypt(secret.decode(), salt, 16, N=2**14, r=8, p=1)
+                    print("Session Key: ", key, "/n")
 
     except Exception as e:
         print("\nError:", e, "\n")
