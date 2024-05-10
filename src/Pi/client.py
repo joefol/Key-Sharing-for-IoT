@@ -17,7 +17,7 @@ test_key_shares = []
 
 # Encrypt message
 def encrypt_message(key, message):
-    cipher = AES.new(key, AES.MODE_CBC, test_keys[0]) 
+    cipher = AES.new(key, AES.MODE_CBC, test_keys[0]) # Using first test key as IV, needs to be random in future
     ciphertext = cipher.encrypt(pad(message.encode(), AES.block_size))
     print("\nCiphertext: ", ciphertext, "\n")
     return ciphertext
