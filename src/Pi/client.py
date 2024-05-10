@@ -16,6 +16,7 @@ test_keys = []
 test_key_shares = []
 
 # Encrypt message
+
 def encrypt_message(key, message):
     cipher = AES.new(key, AES.MODE_CBC, test_keys[0]) # Using first test key as IV, needs to be random in future
     ciphertext = cipher.encrypt(pad(message.encode(), AES.block_size))
@@ -23,6 +24,7 @@ def encrypt_message(key, message):
     return ciphertext
 
 # Function to send encrypted message to server
+
 def send_encrypted_message(client_socket, key, message):
     ciphertext = encrypt_message(key, message)
     data = pickle.dumps(ciphertext)
@@ -31,6 +33,7 @@ def send_encrypted_message(client_socket, key, message):
 # 28 test keys
 # generate 28 test keys of size 128-bit for AES encryption/decryption
 # split each test keys into 6 shares, need 4 to reconstruct, and send to server
+
 for i in range(28):
     key = randbytes(16)
     test_keys.append(key)
@@ -38,12 +41,16 @@ for i in range(28):
 for i in range(28):
     test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
 
+# Beginning socket connection to server
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
     try:
         client_socket.connect((HOST, PORT))
 
         print("\nSuccessfully Connected to Server!\n")
-        
+
+        # Begin initialization phase
+
         for i in range(28):
             data = pickle.dumps(test_key_shares[i])
             client_socket.sendall(data)
@@ -55,6 +62,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
         # Begin cut and choose phase
         # Receive opening key and evaluation key indices
+
         indices = []
         while True:
             data = client_socket.recv(1024)
@@ -84,6 +92,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
         # Begin session key derivation phase
         # Randomly select a secret S
+
         secret = b"25" # should be random
         ciphers = []
 
@@ -100,6 +109,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
         key = scrypt(secret.decode(), "salt", 16, N=2**10, r=8, p=1) # TODO use random salt
         print("Session Key: ", key, "\n")
+
+        # Start communication with encrypted messages using derived key
 
         while True:
             user_input = input("Enter your message: ")

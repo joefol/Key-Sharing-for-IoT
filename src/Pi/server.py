@@ -42,6 +42,8 @@ for i in range(14):
     opening_keys_index.append(i)
     evaluation_keys_index.append(i+14)
 
+# Begin socket connection
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
     try:
         server_socket.bind((HOST, PORT))
@@ -54,6 +56,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             print('\nConnected by', addr, "\n")
             
             client_shares = ()
+
+            # Begin initialization phase
 
             while True:
                 data = conn.recv(1024)
@@ -76,6 +80,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                     #print("\nSecret ", i, ": ", test_keys[i])
 
                 print("\nShares Received\n")
+
+                # Begin cut and choose phase
 
                 conn.sendall(pickle.dumps(opening_keys_index))
                 conn.sendall(pickle.dumps(evaluation_keys_index))
@@ -113,6 +119,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                     print("Opening keys reconstructed!\n")
 
+                    # Begin session key derivation phase
+
                     ciphertexts = []
 
                     data = conn.recv(1024)
@@ -142,6 +150,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                     key = scrypt(secret.decode(), "salt", 16, N=2**10, r=8, p=1) # TODO use random salt
                     print("Session Key: ", key)
+
+                    # Begin communication with encrypted messages using derived key
 
                     while True:
                         plaintext = receive_and_decrypt_message(conn, key)
