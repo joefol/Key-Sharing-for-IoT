@@ -51,6 +51,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
         # Begin initialization phase
 
+        start_time = time.time()
+
         for i in range(28):
             data = pickle.dumps(test_key_shares[i])
             client_socket.sendall(data)
@@ -108,7 +110,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         print("Sent ciphertexts to server\n")
 
         key = scrypt(secret.decode(), "salt", 16, N=2**10, r=8, p=1) # TODO use random salt
-        print("Session Key: ", key, "\n")
+
+        end_time = time.time() - start_time
+
+        print("Session Key: ", key, " took", end_time, "seconds\n")
 
         # Start communication with encrypted messages using derived key
 
