@@ -14,14 +14,14 @@ Each folder contains different key sharing schemes. Running the code will return
     - The time it takes to derive a session key will be outputted.
     - After a session key is established between the client and server, you will be able to send encrypted messages to the server.
     - The server then decrypts any incoming messages with the key and outputs them.
-    - Encryption and decryption are done using AES-256 CBC mode.
+    - Encryption and decryption are done using AES-256 with CBC mode.
 
 ## Analysis
-Each implementation (RSA, ECDH, Pi) were run 20 times. Listed below are the average times for each.
+Each implementation (RSA, ECDH, Pi) were ran 20 times. Listed below are the average times in seconds for each. See the 'Key_Sharing_Data' text file in the repo for all data collected. 
 
 - RSA:
-    - ...
+    - 10.63924192 seconds
 - ECDH:
-    - ...
+    - 0.456192446 seconds
 - Pi:
-    - ...
+    - 0.159353876 seconds
