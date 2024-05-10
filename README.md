@@ -17,7 +17,7 @@ Each folder contains different key sharing schemes. Running the code will return
     - Encryption and decryption are done using AES-256 with CBC mode.
 
 ## Analysis
-Each implementation (RSA, ECDH, Pi) were ran 20 times. Listed below are the average times in seconds for each. See the 'Key_Sharing_Data' text file in the repo for all data collected. 
+Each implementation (RSA, ECDH, Pi) was ran 20 times. Listed below are the average times in seconds for each. See the 'Key_Sharing_Data' text file in the repo for all data collected. 
 
 - RSA:
     - 10.63924192 seconds
