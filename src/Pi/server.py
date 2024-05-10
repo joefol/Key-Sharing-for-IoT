@@ -3,6 +3,7 @@ import pickle
 from Crypto.Protocol.SecretSharing import Shamir
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+from Crypto.Util.Padding import pad
 from Crypto.Protocol.KDF import scrypt
 from Crypto.Random import get_random_bytes
 from random import *
@@ -22,6 +23,20 @@ evaluation_keys_index = []
 
 errors = []
 counter = 0
+
+# Decrypt message
+def decrypt_message(key, ciphertext):
+    cipher = AES.new(key, AES.MODE_ECB)
+    plaintext = unpad(cipher.decrypt(ciphertext), AES.block_size)
+    return plaintext.decode()
+
+# Function to receive and decrypt messages from client
+def receive_and_decrypt_message(conn, key):
+    data = conn.recv(1024)
+    ciphertext = pickle.loads(data)
+    print("\nCiphertext: ", ciphertext, "\n")
+    plaintext = decrypt_message(key, ciphertext)
+    return plaintext
 
 
 # Needs to be random, doing 0-13 for opening keys and 14-27 for eval keys
@@ -53,8 +68,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             #print("continuing\n")
             if len(client_shares) != 28:
                 print("Error in initialization phase: Received", len(client_shares), "test keys instead of 28. Aborting protocol\n")
-                server_socket.shutdown(socket.SHUT_RDWR)
-                server_socket.close()
+                conn.shutdown(socket.SHUT_RDWR)
+                conn.close()
 
             else:
 
@@ -83,8 +98,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                 if len(client_shares_opening) != 14:
                     print("Error in cut-and-choose phase: Received", len(client_shares_opening), "test keys instead of 14. Aborting protocol\n")
-                    server_socket.shutdown(socket.SHUT_RDWR)
-                    server_socket.close()
+                    conn.shutdown(socket.SHUT_RDWR)
+                    conn.close()
 
                 else:
                     print("Received shares\n")
@@ -109,14 +124,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                     #print(ciphertexts)
 
-                    data = conn.recv(1024) # Receive end message
+                    #data = conn.recv(1024) # Receive end message
 
                     plaintexts = []
                     for i in range(14):
                         cipher = AES.new(test_keys[evaluation_keys_index[i]], AES.MODE_ECB)
                         plaintext = unpad(cipher.decrypt(ciphertexts[i]), AES.block_size)
                         plaintexts.append(plaintext)
-                        print("Secret: ", plaintexts[i])
+                        #print("Secret: ", plaintexts[i])
                     
                     if len(plaintexts) != 0:
                         print("\nServer has received and decrypted ciphertexts. Calculating secret...\n")
@@ -128,14 +143,24 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                             break
                     if secret == 0:
                         print("Session Key Derivation Phase failed. Aborting protocol\n")
-                        server_socket.shutdown(socket.SHUT_RDWR)
-                        server_socket.close()
+                        conn.shutdown(socket.SHUT_RDWR)
+                        conn.close()
 
                     # TODO use pseudorandome function to derive key from secret
 
-                    salt = get_random_bytes(16)
-                    key = scrypt(secret.decode(), salt, 16, N=2**14, r=8, p=1)
-                    print("Session Key: ", key, "/n")
+                    print("Calculated secret = ", secret, "\n")
+
+                    key = scrypt(secret.decode(), "salt", 16, N=2**14, r=8, p=1)
+                    print("Session Key: ", key)
+
+                    while True:
+                        plaintext = receive_and_decrypt_message(conn, key)
+                        if plaintext == "quit":
+                            print("Goodbye!\n")
+                            conn.shutdown(socket.SHUT_RDWR)
+                            conn.close()
+                            break
+                        print("Client ", addr, ":", plaintext)
 
     except Exception as e:
         print("\nError:", e, "\n")
