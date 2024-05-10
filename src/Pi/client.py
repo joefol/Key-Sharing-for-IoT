@@ -3,9 +3,7 @@ import pickle
 from Crypto.Protocol.SecretSharing import Shamir
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
-from Crypto.Util.Padding import unpad
 from Crypto.Protocol.KDF import scrypt
-from Crypto.Random import get_random_bytes
 import time
 from random import randbytes
 
@@ -18,13 +16,15 @@ test_keys = []
 test_key_shares = []
 
 # Encrypt message
+
 def encrypt_message(key, message):
-    cipher = AES.new(key, AES.MODE_ECB)
+    cipher = AES.new(key, AES.MODE_CBC, test_keys[0]) # Using first test key as IV, needs to be random in future
     ciphertext = cipher.encrypt(pad(message.encode(), AES.block_size))
     print("\nCiphertext: ", ciphertext, "\n")
     return ciphertext
 
 # Function to send encrypted message to server
+
 def send_encrypted_message(client_socket, key, message):
     ciphertext = encrypt_message(key, message)
     data = pickle.dumps(ciphertext)
@@ -33,6 +33,7 @@ def send_encrypted_message(client_socket, key, message):
 # 28 test keys
 # generate 28 test keys of size 128-bit for AES encryption/decryption
 # split each test keys into 6 shares, need 4 to reconstruct, and send to server
+
 for i in range(28):
     key = randbytes(16)
     test_keys.append(key)
@@ -40,12 +41,16 @@ for i in range(28):
 for i in range(28):
     test_key_shares.append(Shamir.split(4, 6, test_keys[i]))
 
+# Beginning socket connection to server
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
     try:
         client_socket.connect((HOST, PORT))
 
         print("\nSuccessfully Connected to Server!\n")
-        
+
+        # Begin initialization phase
+
         for i in range(28):
             data = pickle.dumps(test_key_shares[i])
             client_socket.sendall(data)
@@ -57,11 +62,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
         # Begin cut and choose phase
         # Receive opening key and evaluation key indices
+
         indices = []
         while True:
             data = client_socket.recv(1024)
             if data.endswith(b"READY"):
-                #print("BREAK\n")
                 break
             indices += pickle.loads(data)
 
@@ -72,19 +77,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
         opening_key_indices = indices[:14]
         eval_key_indices = indices[14:]
-
-        '''
-        for i in range(14):
-            print("Opening indices: ", opening_key_indices[i], "\n")
-            print("Eval indices: ", eval_key_indices[i], "\n")
-        '''
         
         print("Indices received from server\n")
 
         for i in range(14):
             data = pickle.dumps(test_key_shares[opening_key_indices[i]])
             client_socket.sendall(data)
-            #print("Check\n")
             time.sleep(TIME_DELAY)
 
         data = b"READY"
@@ -94,7 +92,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
         # Begin session key derivation phase
         # Randomly select a secret S
-        secret = b"25"
+
+        secret = b"25" # should be random
         ciphers = []
 
         for i in range(14):
@@ -106,15 +105,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         data = pickle.dumps(ciphers)
         client_socket.sendall(data)
 
-        #data = b"READY"
-        #client_socket.sendall(data)
-
         print("Sent ciphertexts to server\n")
 
-        # TODO use pseudorandome function to derive key from secret
-
-        key = scrypt(secret.decode(), "salt", 16, N=2**14, r=8, p=1)
+        key = scrypt(secret.decode(), "salt", 16, N=2**10, r=8, p=1) # TODO use random salt
         print("Session Key: ", key, "\n")
+
+        # Start communication with encrypted messages using derived key
 
         while True:
             user_input = input("Enter your message: ")

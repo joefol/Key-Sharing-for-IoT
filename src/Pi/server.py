@@ -3,9 +3,7 @@ import pickle
 from Crypto.Protocol.SecretSharing import Shamir
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-from Crypto.Util.Padding import pad
 from Crypto.Protocol.KDF import scrypt
-from Crypto.Random import get_random_bytes
 from random import *
 import time
 
@@ -26,7 +24,7 @@ counter = 0
 
 # Decrypt message
 def decrypt_message(key, ciphertext):
-    cipher = AES.new(key, AES.MODE_ECB)
+    cipher = AES.new(key, AES.MODE_CBC, test_keys[0]) # Using first test key as IV, needs to be random in future
     plaintext = unpad(cipher.decrypt(ciphertext), AES.block_size)
     return plaintext.decode()
 
@@ -44,6 +42,8 @@ for i in range(14):
     opening_keys_index.append(i)
     evaluation_keys_index.append(i+14)
 
+# Begin socket connection
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
     try:
         server_socket.bind((HOST, PORT))
@@ -57,6 +57,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             
             client_shares = ()
 
+            # Begin initialization phase
+
             while True:
                 data = conn.recv(1024)
                 if data.endswith(b"READY"):
@@ -65,7 +67,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                 client_shares += (shares_i,)
                 #print(data, "\n")
 
-            #print("continuing\n")
             if len(client_shares) != 28:
                 print("Error in initialization phase: Received", len(client_shares), "test keys instead of 28. Aborting protocol\n")
                 conn.shutdown(socket.SHUT_RDWR)
@@ -79,6 +80,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                     #print("\nSecret ", i, ": ", test_keys[i])
 
                 print("\nShares Received\n")
+
+                # Begin cut and choose phase
 
                 conn.sendall(pickle.dumps(opening_keys_index))
                 conn.sendall(pickle.dumps(evaluation_keys_index))
@@ -103,7 +106,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                 else:
                     print("Received shares\n")
-                    #print(client_shares)
 
                     for i in range(14):
                         test_keys_opening.append(Shamir.combine(client_shares_opening[i]))
@@ -117,14 +119,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
 
                     print("Opening keys reconstructed!\n")
 
+                    # Begin session key derivation phase
+
                     ciphertexts = []
 
                     data = conn.recv(1024)
                     ciphertexts = pickle.loads(data)
-
-                    #print(ciphertexts)
-
-                    #data = conn.recv(1024) # Receive end message
 
                     plaintexts = []
                     for i in range(14):
@@ -146,12 +146,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                         conn.shutdown(socket.SHUT_RDWR)
                         conn.close()
 
-                    # TODO use pseudorandome function to derive key from secret
-
                     print("Calculated secret = ", secret, "\n")
 
-                    key = scrypt(secret.decode(), "salt", 16, N=2**14, r=8, p=1)
+                    key = scrypt(secret.decode(), "salt", 16, N=2**10, r=8, p=1) # TODO use random salt
                     print("Session Key: ", key)
+
+                    # Begin communication with encrypted messages using derived key
 
                     while True:
                         plaintext = receive_and_decrypt_message(conn, key)
