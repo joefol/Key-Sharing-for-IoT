@@ -37,10 +37,10 @@ def receive_and_decrypt_message(conn, key):
     return plaintext
 
 
-# Needs to be random, doing 0-13 for opening keys and 14-27 for eval keys
+indices = sample(range(28), 28)
 for i in range(14):
-    opening_keys_index.append(i)
-    evaluation_keys_index.append(i+14)
+    opening_keys_index.append(indices[i])
+    evaluation_keys_index.append(indices[i+14])
 
 # Begin socket connection
 
@@ -110,7 +110,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
                     for i in range(14):
                         test_keys_opening.append(Shamir.combine(client_shares_opening[i]))
                         test_keys_opening_ints.append(int.from_bytes(test_keys_opening[i], 'big'))
-                        if test_keys_ints[i] != test_keys_opening_ints[i]:
+                        if test_keys_ints[opening_keys_index[i]] != test_keys_opening_ints[i]:
                             print("Test Key at index ", opening_keys_index[i], " is not equal.\n")
                             errors.append(opening_keys_index[i])
                             print("Error at index: ", errors[counter], "\n")
